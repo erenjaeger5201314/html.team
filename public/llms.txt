@@ -1,0 +1,31 @@
+# htmlcode.fun Agent Deployment Guide
+
+Preferred API endpoint:
+- POST https://www.htmlcode.fun/api/deploy
+
+Required request format:
+- Content-Type: application/json
+- Body must be a single JSON object, not an array
+- Required fields:
+  - filename: string, must end with .html or .htm
+  - content: string, full HTML source
+- Optional field:
+  - title: string
+
+Do NOT use:
+- multipart/form-data
+- curl -F file=@...
+- batch array payloads
+
+Rate limit:
+- After each successful deploy, global cooldown is 10 seconds
+- During cooldown API returns 429 with retryAfterSeconds
+
+Success response includes:
+- success, id, code, url, qrCode, requestId, cooldownSeconds, nextAvailableAt
+
+Error response includes:
+- success=false, errorCode, error, detail, hint, docs, stage, requestId
+
+Docs:
+- https://www.htmlcode.fun/api-docs

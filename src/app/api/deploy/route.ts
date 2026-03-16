@@ -11,6 +11,8 @@ type DeployFailOptions = {
   code: string;
   message: string;
   detail?: string;
+  hint?: string;
+  docs?: string;
   stage?: 'validation' | 'rate_limit' | 'upload_html' | 'upload_qr' | 'database' | 'internal';
   retryAfterSeconds?: number;
   requestId: string;
@@ -23,6 +25,8 @@ function failResponse(options: DeployFailOptions) {
       error: options.message,
       errorCode: options.code,
       detail: options.detail,
+      hint: options.hint,
+      docs: options.docs,
       stage: options.stage,
       requestId: options.requestId,
       retryAfterSeconds: options.retryAfterSeconds,
@@ -45,7 +49,49 @@ export async function POST(request: NextRequest) {
   const requestId = randomUUID();
 
   try {
-    const body = await request.json();
+    const contentType = request.headers.get('content-type') || '';
+
+    if (contentType.includes('multipart/form-data')) {
+      return failResponse({
+        status: 415,
+        code: 'UNSUPPORTED_CONTENT_TYPE',
+        message: '当前接口不支持 multipart/form-data 上传。',
+        detail: '检测到 -F file 方式。请改用 application/json 并传 content + filename。',
+        hint: '示例: {"filename":"index.html","content":"<!doctype html>..."}',
+        docs: '/api-docs',
+        stage: 'validation',
+        requestId,
+      });
+    }
+
+    if (!contentType.includes('application/json')) {
+      return failResponse({
+        status: 415,
+        code: 'UNSUPPORTED_CONTENT_TYPE',
+        message: '仅支持 application/json 请求。',
+        detail: `当前 Content-Type 为 ${contentType || 'unknown'}`,
+        hint: '请设置 Content-Type: application/json，并在 body 中传 content 与 filename。',
+        docs: '/api-docs',
+        stage: 'validation',
+        requestId,
+      });
+    }
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch (parseError: any) {
+      return failResponse({
+        status: 400,
+        code: 'INVALID_JSON',
+        message: '请求体不是合法 JSON。',
+        detail: parseError?.message,
+        hint: '不要使用 -F file 或原始文本，请传 JSON 对象。',
+        docs: '/api-docs',
+        stage: 'validation',
+        requestId,
+      });
+    }
 
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return failResponse({
@@ -53,6 +99,8 @@ export async function POST(request: NextRequest) {
         code: 'BATCH_NOT_SUPPORTED',
         message: '仅支持单个 HTML 请求，不支持批量部署。',
         detail: 'Request body 必须是单个 JSON 对象，不能是数组。',
+        hint: '请将单个 HTML 内容放在 content 字段。',
+        docs: '/api-docs',
         stage: 'validation',
         requestId,
       });
@@ -70,6 +118,8 @@ export async function POST(request: NextRequest) {
         code: 'INVALID_PAYLOAD',
         message: '请求参数无效。',
         detail: 'content 和 filename 必须为字符串。',
+        hint: '示例字段: filename="index.html", content="<!doctype html>..."',
+        docs: '/api-docs',
         stage: 'validation',
         requestId,
       });

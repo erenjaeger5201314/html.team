@@ -43,6 +43,9 @@ export default function ApiDocsPage() {
         <h2 className="text-lg font-semibold text-gray-900">接口说明</h2>
         <p className="text-sm text-gray-700">部署入口：POST /api/deploy</p>
         <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+          <li>请求头必须为 Content-Type: application/json</li>
+          <li>请传 JSON 对象（filename + content + 可选 title）</li>
+          <li>不要使用 curl -F file 或 multipart/form-data</li>
           <li>仅支持单个 HTML 请求，不支持批量部署</li>
           <li>每次部署成功后，全局冷却 10 秒</li>
           <li>冷却期间返回 429，并包含 retryAfterSeconds</li>
@@ -67,9 +70,13 @@ export default function ApiDocsPage() {
       </div>
 
       <div className="rounded-lg border border-amber-200 bg-amber-50 p-5">
-        <p className="text-sm text-amber-800">
-          部署失败时会返回结构化错误字段：errorCode、stage、detail、requestId。Agent 可据此决定是否重试。
-        </p>
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-amber-900">常见错误调用（不要这样用）</p>
+          <pre className="overflow-auto rounded-md bg-gray-900 p-4 text-xs text-gray-100">curl -L -X POST https://www.htmlcode.fun/api/deploy -F "file=@index.html"</pre>
+          <p className="text-sm text-amber-800">
+            如果上传方式不正确，接口会返回结构化错误字段：errorCode、hint、docs、stage、detail、requestId。
+          </p>
+        </div>
       </div>
     </div>
   );

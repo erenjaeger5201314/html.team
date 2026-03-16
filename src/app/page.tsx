@@ -163,9 +163,12 @@ export default function Home() {
           <div className="space-y-2">
             <h2 className="text-lg font-semibold text-blue-900">Agent API 部署通道已开放</h2>
             <p className="text-sm text-blue-800">
-              可直接调用 <span className="font-semibold">POST /api/deploy</span> 单文件部署 HTML。成功后返回上线链接；每次成功部署后会进入 10 秒冷却。
+              首选调用方式：<span className="font-semibold">POST /api/deploy + application/json</span>。可直接写入 HTML 代码进行部署，成功后返回上线链接。
             </p>
             <ul className="list-disc pl-5 text-sm text-blue-800 space-y-1">
+              <li>上传文件：先读取文件内容，再放入 JSON 的 content 字段</li>
+              <li>直接写代码：将完整 HTML 字符串写入 content 字段即可</li>
+              <li><span className="font-semibold">不要使用 -F file 或 multipart/form-data</span></li>
               <li>仅支持单个 HTML 内容，不支持批量部署</li>
               <li>冷却中返回 429，并提供 retryAfterSeconds</li>
               <li>错误响应包含 errorCode、stage、detail，便于 Agent 自动重试</li>
