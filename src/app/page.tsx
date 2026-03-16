@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import FileUpload from '@/components/FileUpload';
 import Preview from '@/components/Preview';
 import DeploySuccess from '@/components/DeploySuccess';
@@ -155,6 +156,28 @@ export default function Home() {
         <p className="text-lg text-gray-500 max-w-2xl mx-auto">
           上传您的 HTML 文件，即时预览效果，并一键部署到云端生成永久访问链接和二维码。
         </p>
+      </div>
+
+      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold text-blue-900">Agent API 部署通道已开放</h2>
+            <p className="text-sm text-blue-800">
+              可直接调用 <span className="font-semibold">POST /api/deploy</span> 单文件部署 HTML。成功后返回上线链接；每次成功部署后会进入 10 秒冷却。
+            </p>
+            <ul className="list-disc pl-5 text-sm text-blue-800 space-y-1">
+              <li>仅支持单个 HTML 内容，不支持批量部署</li>
+              <li>冷却中返回 429，并提供 retryAfterSeconds</li>
+              <li>错误响应包含 errorCode、stage、detail，便于 Agent 自动重试</li>
+            </ul>
+          </div>
+          <Link
+            href="/api-docs"
+            className="inline-flex items-center justify-center rounded-md border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+          >
+            查看 API 快速文档
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -1,22 +1,178 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
 import QRCode from 'qrcode';
+import { randomUUID } from 'crypto';
+
+const COOLDOWN_SECONDS = 10;
+const MAX_HTML_SIZE_BYTES = 1024 * 1024; // 1 MB
+
+type DeployFailOptions = {
+  status: number;
+  code: string;
+  message: string;
+  detail?: string;
+  stage?: 'validation' | 'rate_limit' | 'upload_html' | 'upload_qr' | 'database' | 'internal';
+  retryAfterSeconds?: number;
+  requestId: string;
+};
+
+function failResponse(options: DeployFailOptions) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: options.message,
+      errorCode: options.code,
+      detail: options.detail,
+      stage: options.stage,
+      requestId: options.requestId,
+      retryAfterSeconds: options.retryAfterSeconds,
+    },
+    { status: options.status }
+  );
+}
+
+function getRetryAfterSeconds(lastSuccessAt: string | null) {
+  if (!lastSuccessAt) return 0;
+
+  const lastSuccessMs = new Date(lastSuccessAt).getTime();
+  const remainingMs = lastSuccessMs + COOLDOWN_SECONDS * 1000 - Date.now();
+  if (remainingMs <= 0) return 0;
+
+  return Math.ceil(remainingMs / 1000);
+}
 
 export async function POST(request: NextRequest) {
+  const requestId = randomUUID();
+
   try {
     const body = await request.json();
-    const { content, filename, title } = body;
 
-    if (!content || !filename) {
-      return NextResponse.json(
-        { success: false, error: 'Content and filename are required' },
-        { status: 400 }
-      );
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return failResponse({
+        status: 400,
+        code: 'BATCH_NOT_SUPPORTED',
+        message: '仅支持单个 HTML 请求，不支持批量部署。',
+        detail: 'Request body 必须是单个 JSON 对象，不能是数组。',
+        stage: 'validation',
+        requestId,
+      });
+    }
+
+    const { content, filename, title } = body as {
+      content?: unknown;
+      filename?: unknown;
+      title?: unknown;
+    };
+
+    if (typeof content !== 'string' || typeof filename !== 'string') {
+      return failResponse({
+        status: 400,
+        code: 'INVALID_PAYLOAD',
+        message: '请求参数无效。',
+        detail: 'content 和 filename 必须为字符串。',
+        stage: 'validation',
+        requestId,
+      });
+    }
+
+    const normalizedFilename = filename.trim();
+    const normalizedContent = content.trim();
+
+    if (!normalizedContent || !normalizedFilename) {
+      return failResponse({
+        status: 400,
+        code: 'INVALID_PAYLOAD',
+        message: '内容和文件名不能为空。',
+        detail: '请提供有效的 HTML 内容与文件名。',
+        stage: 'validation',
+        requestId,
+      });
+    }
+
+    if (!/\.html?$/i.test(normalizedFilename)) {
+      return failResponse({
+        status: 400,
+        code: 'INVALID_FILENAME',
+        message: '仅支持 .html 或 .htm 文件部署。',
+        detail: '请将 filename 设置为 html/htm 后缀。',
+        stage: 'validation',
+        requestId,
+      });
+    }
+
+    const fileSize = Buffer.byteLength(normalizedContent, 'utf8');
+    if (fileSize > MAX_HTML_SIZE_BYTES) {
+      return failResponse({
+        status: 413,
+        code: 'FILE_TOO_LARGE',
+        message: 'HTML 文件体积超出限制。',
+        detail: `当前大小 ${fileSize} bytes，最大允许 ${MAX_HTML_SIZE_BYTES} bytes。`,
+        stage: 'validation',
+        requestId,
+      });
+    }
+
+    if (!/(<!doctype html|<html[\s>])/i.test(normalizedContent)) {
+      return failResponse({
+        status: 400,
+        code: 'INVALID_HTML',
+        message: '提交内容不是有效的 HTML 文本。',
+        detail: '内容中至少应包含 <!doctype html> 或 <html> 标签。',
+        stage: 'validation',
+        requestId,
+      });
+    }
+
+    // Global cooldown check (shared across all callers)
+    const { data: stateRow, error: stateQueryError } = await supabase
+      .from('deploy_api_state')
+      .select('last_success_at')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (stateQueryError) {
+      return failResponse({
+        status: 500,
+        code: 'COOLDOWN_STATE_QUERY_FAILED',
+        message: '部署状态读取失败，请稍后再试。',
+        detail: stateQueryError.message,
+        stage: 'rate_limit',
+        requestId,
+      });
+    }
+
+    if (!stateRow) {
+      const { error: stateInitError } = await supabase
+        .from('deploy_api_state')
+        .insert({ id: 1, last_success_at: null });
+
+      if (stateInitError) {
+        return failResponse({
+          status: 500,
+          code: 'COOLDOWN_STATE_INIT_FAILED',
+          message: '部署状态初始化失败，请稍后重试。',
+          detail: stateInitError.message,
+          stage: 'rate_limit',
+          requestId,
+        });
+      }
+    }
+
+    const retryAfterSeconds = getRetryAfterSeconds(stateRow?.last_success_at ?? null);
+    if (retryAfterSeconds > 0) {
+      return failResponse({
+        status: 429,
+        code: 'COOLDOWN_ACTIVE',
+        message: '当前处于部署冷却期，请稍后再试。',
+        detail: `部署成功后需等待 ${COOLDOWN_SECONDS} 秒。`,
+        stage: 'rate_limit',
+        retryAfterSeconds,
+        requestId,
+      });
     }
 
     // Generate IDs
     const code = Math.random().toString(36).substring(2, 8);
-  const fileSize = Buffer.byteLength(content, 'utf8');
     
     // Determine protocol and host for the deployment URL
     const host = request.headers.get('host') || 'localhost:3000';
@@ -37,12 +193,21 @@ export async function POST(request: NextRequest) {
     const htmlPath = `html/${code}.html`;
     const { error: uploadHtmlError } = await supabase.storage
       .from('deployments')
-      .upload(htmlPath, content, {
+      .upload(htmlPath, normalizedContent, {
         contentType: 'text/html',
         upsert: true
       });
 
-    if (uploadHtmlError) throw new Error(`HTML Upload failed: ${uploadHtmlError.message}`);
+    if (uploadHtmlError) {
+      return failResponse({
+        status: 500,
+        code: 'DEPLOY_UPLOAD_HTML_FAILED',
+        message: 'HTML 上传失败。',
+        detail: uploadHtmlError.message,
+        stage: 'upload_html',
+        requestId,
+      });
+    }
 
     // 2. Generate and Upload QR Code
     const qrBuffer = await QRCode.toBuffer(deployUrl);
@@ -54,7 +219,16 @@ export async function POST(request: NextRequest) {
         upsert: true
       });
 
-    if (uploadQrError) throw new Error(`QR Upload failed: ${uploadQrError.message}`);
+    if (uploadQrError) {
+      return failResponse({
+        status: 500,
+        code: 'DEPLOY_UPLOAD_QR_FAILED',
+        message: '二维码生成或上传失败。',
+        detail: uploadQrError.message,
+        stage: 'upload_qr',
+        requestId,
+      });
+    }
 
     // Get Public URLs
     const { data: { publicUrl: htmlPublicUrl } } = supabase.storage.from('deployments').getPublicUrl(htmlPath);
@@ -65,8 +239,8 @@ export async function POST(request: NextRequest) {
       .from('deployments')
       .insert({
         code,
-        title: title || filename,
-        filename,
+        title: typeof title === 'string' && title.trim() ? title.trim() : normalizedFilename,
+        filename: normalizedFilename,
         file_path: htmlPublicUrl, // Storing the public URL for easy access
         file_size: fileSize,
         qr_code_path: qrPublicUrl,
@@ -75,21 +249,54 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (dbError) throw new Error(`DB Insert failed: ${dbError.message}`);
+    if (dbError) {
+      return failResponse({
+        status: 500,
+        code: 'DEPLOY_DB_INSERT_FAILED',
+        message: '部署记录写入失败。',
+        detail: dbError.message,
+        stage: 'database',
+        requestId,
+      });
+    }
+
+    const nowIso = new Date().toISOString();
+    const { error: cooldownUpdateError } = await supabase
+      .from('deploy_api_state')
+      .update({ last_success_at: nowIso })
+      .eq('id', 1);
+
+    if (cooldownUpdateError) {
+      return failResponse({
+        status: 500,
+        code: 'COOLDOWN_STATE_UPDATE_FAILED',
+        message: '部署已成功但冷却状态更新失败。',
+        detail: cooldownUpdateError.message,
+        stage: 'rate_limit',
+        requestId,
+      });
+    }
 
     return NextResponse.json({
       success: true,
       id: data.id,
       code: data.code,
       url: deployUrl,
-      qrCode: qrPublicUrl
+      qrCode: qrPublicUrl,
+      requestId,
+      cooldownSeconds: COOLDOWN_SECONDS,
+      nextAvailableAt: new Date(Date.now() + COOLDOWN_SECONDS * 1000).toISOString(),
     });
 
   } catch (error: any) {
     console.error('Deployment error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    return failResponse({
+      status: 500,
+      code: 'INTERNAL_ERROR',
+      message: '部署过程中发生未预期错误。',
+      detail: error?.message,
+      stage: 'internal',
+      requestId,
+    });
   }
 }
