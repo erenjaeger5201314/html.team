@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
 
+const CDN_CACHE_CONTROL = 'public, s-maxage=120, stale-while-revalidate=600';
+const NO_STORE_CACHE_CONTROL = 'no-store, no-cache, must-revalidate, max-age=0';
+
 function getStoragePathFromFilePath(filePath: unknown, code: string) {
   if (typeof filePath !== 'string' || !filePath.trim()) {
     return `html/${code}.html`;
@@ -32,7 +35,7 @@ export async function GET(
     // For preview mode (admin embed), allow inactive deployments too
     const query = supabase
       .from('deployments')
-      .select('id, file_path, view_count, status')
+      .select('id, file_path, status')
       .eq('code', code);
     
     if (!isPreview) {
@@ -47,12 +50,20 @@ export async function GET(
 
     // Skip view count increment for embed/preview requests
     if (!isPreview) {
-      const { error: incrementError } = await supabase
-        .rpc('increment_deployment_view_count', { target_id: deployment.id });
+      // Do not block page response on stats write.
+      void supabase
+        .rpc('increment_deployment_view_count', { target_id: deployment.id })
+        .then(({ error: incrementError }) => {
+          if (incrementError) {
+            console.error('Increment view count error:', incrementError);
+          }
+        });
+    }
 
-      if (incrementError) {
-        console.error('Increment view count error:', incrementError);
-      }
+    if (!isPreview && typeof deployment.file_path === 'string' && deployment.file_path.trim()) {
+      const response = NextResponse.redirect(deployment.file_path.trim(), 307);
+      response.headers.set('Cache-Control', CDN_CACHE_CONTROL);
+      return response;
     }
 
     const storagePath = getStoragePathFromFilePath(deployment.file_path, code);
@@ -69,7 +80,8 @@ export async function GET(
 
     return new NextResponse(content, {
       headers: {
-        'Content-Type': 'text/html',
+        'Content-Type': 'text/html; charset=utf-8',
+        'Cache-Control': isPreview ? NO_STORE_CACHE_CONTROL : CDN_CACHE_CONTROL,
       },
     });
 
