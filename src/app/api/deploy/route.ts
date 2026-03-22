@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 
 const COOLDOWN_SECONDS = 10;
 const MAX_HTML_SIZE_BYTES = 1024 * 1024; // 1 MB
+const CUSTOM_CODE_PATTERN = /^[a-z0-9](?:[a-z0-9-]{2,30}[a-z0-9])?$/;
 
 type DeployFailOptions = {
   status: number;
@@ -13,7 +14,7 @@ type DeployFailOptions = {
   detail?: string;
   hint?: string;
   docs?: string;
-  stage?: 'validation' | 'rate_limit' | 'upload_html' | 'upload_qr' | 'database' | 'internal';
+  stage?: 'validation' | 'rate_limit' | 'code_generation' | 'upload_html' | 'upload_qr' | 'database' | 'internal';
   retryAfterSeconds?: number;
   requestId: string;
 };
@@ -43,6 +44,34 @@ function getRetryAfterSeconds(lastSuccessAt: string | null) {
   if (remainingMs <= 0) return 0;
 
   return Math.ceil(remainingMs / 1000);
+}
+
+function createRandomCode() {
+  return Math.random().toString(36).substring(2, 8);
+}
+
+async function isCodeTaken(code: string) {
+  const { data, error } = await supabase
+    .from('deployments')
+    .select('id')
+    .eq('code', code)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return !!data;
+}
+
+async function generateUniqueCode() {
+  for (let i = 0; i < 5; i++) {
+    const candidate = createRandomCode();
+    const exists = await isCodeTaken(candidate);
+    if (!exists) return candidate;
+  }
+
+  throw new Error('Failed to generate unique code after retries');
 }
 
 export async function POST(request: NextRequest) {
@@ -106,10 +135,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const { content, filename, title } = body as {
+    const { content, filename, title, enableCustomCode, customCode } = body as {
       content?: unknown;
       filename?: unknown;
       title?: unknown;
+      enableCustomCode?: unknown;
+      customCode?: unknown;
     };
 
     if (typeof content !== 'string' || typeof filename !== 'string') {
@@ -173,6 +204,77 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const customCodeEnabled = enableCustomCode === true;
+    let resolvedCode: string;
+
+    if (customCodeEnabled) {
+      if (typeof customCode !== 'string' || !customCode.trim()) {
+        return failResponse({
+          status: 400,
+          code: 'CUSTOM_CODE_REQUIRED',
+          message: '已开启自定义短链，但未提供 customCode。',
+          detail: '请传入 customCode，格式如 my-site-01。',
+          hint: '若不需要自定义短链，请将 enableCustomCode 设为 false 或省略。',
+          docs: '/api-docs',
+          stage: 'validation',
+          requestId,
+        });
+      }
+
+      const normalizedCustomCode = customCode.trim().toLowerCase();
+      if (!CUSTOM_CODE_PATTERN.test(normalizedCustomCode)) {
+        return failResponse({
+          status: 400,
+          code: 'INVALID_CUSTOM_CODE',
+          message: '自定义短链后缀格式不合法。',
+          detail: '仅允许小写字母、数字、短横线，长度 4-32，且不能以短横线开头或结尾。',
+          docs: '/api-docs',
+          stage: 'validation',
+          requestId,
+        });
+      }
+
+      try {
+        const exists = await isCodeTaken(normalizedCustomCode);
+        if (exists) {
+          return failResponse({
+            status: 409,
+            code: 'CUSTOM_CODE_TAKEN',
+            message: '该自定义短链后缀已被占用。',
+            detail: `customCode=${normalizedCustomCode}`,
+            hint: '请更换一个未占用的 customCode。',
+            docs: '/api-docs',
+            stage: 'code_generation',
+            requestId,
+          });
+        }
+      } catch (queryError: any) {
+        return failResponse({
+          status: 500,
+          code: 'CUSTOM_CODE_CHECK_FAILED',
+          message: '自定义短链可用性检查失败。',
+          detail: queryError?.message,
+          stage: 'code_generation',
+          requestId,
+        });
+      }
+
+      resolvedCode = normalizedCustomCode;
+    } else {
+      try {
+        resolvedCode = await generateUniqueCode();
+      } catch (generateError: any) {
+        return failResponse({
+          status: 500,
+          code: 'AUTO_CODE_GENERATION_FAILED',
+          message: '自动生成短链后缀失败，请稍后再试。',
+          detail: generateError?.message,
+          stage: 'code_generation',
+          requestId,
+        });
+      }
+    }
+
     // Global cooldown check (shared across all callers)
     const { data: stateRow, error: stateQueryError } = await supabase
       .from('deploy_api_state')
@@ -221,8 +323,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Generate IDs
-    const code = Math.random().toString(36).substring(2, 8);
+    // Use resolved short code
+    const code = resolvedCode;
     
     // Determine protocol and host for the deployment URL
     const host = request.headers.get('host') || 'localhost:3000';
@@ -336,6 +438,7 @@ export async function POST(request: NextRequest) {
       requestId,
       cooldownSeconds: COOLDOWN_SECONDS,
       nextAvailableAt: new Date(Date.now() + COOLDOWN_SECONDS * 1000).toISOString(),
+      customCodeEnabled,
     });
 
   } catch (error: any) {

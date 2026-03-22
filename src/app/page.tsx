@@ -168,6 +168,8 @@ export default function Home() {
             <ul className="list-disc pl-5 text-sm text-blue-800 space-y-1">
               <li>上传文件：先读取文件内容，再放入 JSON 的 content 字段</li>
               <li>直接写代码：将完整 HTML 字符串写入 content 字段即可</li>
+              <li>支持可选自定义短链：enableCustomCode=true + customCode</li>
+              <li>已知 code 或 url，可通过 /api/deploy/content 读取、下载、更新 HTML</li>
               <li><span className="font-semibold">不要使用 -F file 或 multipart/form-data</span></li>
               <li>仅支持单个 HTML 内容，不支持批量部署</li>
               <li>冷却中返回 429，并提供 retryAfterSeconds</li>
