@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
 
-const CDN_CACHE_CONTROL = 'public, s-maxage=120, stale-while-revalidate=600';
+const CDN_CACHE_CONTROL = 'public, max-age=0, s-maxage=120, stale-while-revalidate=600';
+const CDN_EDGE_CACHE_CONTROL = 's-maxage=120, stale-while-revalidate=600';
 const NO_STORE_CACHE_CONTROL = 'no-store, no-cache, must-revalidate, max-age=0';
 
 function getStoragePathFromFilePath(filePath: unknown, code: string) {
@@ -63,6 +64,8 @@ export async function GET(
     if (!isPreview && typeof deployment.file_path === 'string' && deployment.file_path.trim()) {
       const response = NextResponse.redirect(deployment.file_path.trim(), 307);
       response.headers.set('Cache-Control', CDN_CACHE_CONTROL);
+      response.headers.set('CDN-Cache-Control', CDN_EDGE_CACHE_CONTROL);
+      response.headers.set('Vercel-CDN-Cache-Control', CDN_EDGE_CACHE_CONTROL);
       return response;
     }
 
@@ -82,6 +85,12 @@ export async function GET(
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
         'Cache-Control': isPreview ? NO_STORE_CACHE_CONTROL : CDN_CACHE_CONTROL,
+        ...(isPreview
+          ? {}
+          : {
+              'CDN-Cache-Control': CDN_EDGE_CACHE_CONTROL,
+              'Vercel-CDN-Cache-Control': CDN_EDGE_CACHE_CONTROL,
+            }),
       },
     });
 
