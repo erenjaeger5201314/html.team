@@ -340,8 +340,11 @@ export default function DeploymentsPage() {
                       </h3>
                       <FileSizeInfo size={deploy.fileSize} />
                     </div>
-                    <p className="mt-1 truncate text-xs text-gray-400" title={deploy.filename}>
-                      {deploy.filename}
+                    <p
+                      className="mt-1 truncate text-xs text-gray-400"
+                      title={`访问地址: /s/${deploy.code}`}
+                    >
+                      短链后缀: {deploy.code}
                     </p>
                   </div>
                   <span className={`shrink-0 px-2 py-1 text-xs font-semibold rounded-full border ${
