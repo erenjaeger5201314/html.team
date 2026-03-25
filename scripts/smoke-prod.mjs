@@ -1,4 +1,4 @@
-const BASE_URL = process.env.SMOKE_BASE_URL || 'https://www.htmlcode.fun';
+﻿const BASE_URL = process.env.SMOKE_BASE_URL || 'https://html-team-three.vercel.app';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

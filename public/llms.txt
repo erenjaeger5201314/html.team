@@ -1,7 +1,7 @@
-# htmlcode.fun Agent Deployment Guide
+# html-team-three.vercel.app Agent Deployment Guide
 
 Preferred API endpoint:
-- POST https://www.htmlcode.fun/api/deploy
+- POST https://html-team-three.vercel.app/api/deploy
 
 Required request format:
 - Content-Type: application/json
@@ -30,10 +30,10 @@ Rate limit:
 - During cooldown API returns 429 with retryAfterSeconds
 
 Collaboration APIs (known code/url):
-- GET https://www.htmlcode.fun/api/deploy/content?code=abc123
-- GET https://www.htmlcode.fun/api/deploy/content?url=https://www.htmlcode.fun/s/abc123
+- GET https://html-team-three.vercel.app/api/deploy/content?code=abc123
+- GET https://html-team-three.vercel.app/api/deploy/content?url=https://html-team-three.vercel.app/s/abc123
 - Download mode: add query download=1
-- PATCH https://www.htmlcode.fun/api/deploy/content
+- PATCH https://html-team-three.vercel.app/api/deploy/content
   - JSON body requires: code or url, and content
   - Optional: title, filename
 
@@ -44,7 +44,7 @@ Error response includes:
 - success=false, errorCode, error, detail, hint, docs, stage, requestId
 
 Docs:
-- https://www.htmlcode.fun/api-docs
+- https://html-team-three.vercel.app/api-docs
 
 Homepage highlights:
 - 上传文件：先读取文件内容，再放入 JSON 的 content 字段

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/db';
 import { randomUUID } from 'crypto';
 import {
@@ -51,8 +51,8 @@ export async function GET(request: NextRequest) {
       return jsonError({
         status: 400,
         code: 'INVALID_CODE_OR_URL',
-        message: '请提供有效的 code 或部署 url。',
-        detail: '示例: ?code=abc123 或 ?url=https://www.htmlcode.fun/s/abc123',
+        message: '璇锋彁渚涙湁鏁堢殑 code 鎴栭儴缃?url銆?,
+        detail: '绀轰緥: ?code=abc123 鎴??url=https://html-team-three.vercel.app/s/abc123',
         requestId,
       });
     }
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       return jsonError({
         status: 404,
         code: 'DEPLOYMENT_NOT_FOUND',
-        message: '未找到对应部署。',
+        message: '鏈壘鍒板搴旈儴缃层€?,
         detail: error?.message,
         requestId,
       });
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       return jsonError({
         status: 404,
         code: 'HTML_CONTENT_NOT_FOUND',
-        message: '未找到该部署的 HTML 内容。',
+        message: '鏈壘鍒拌閮ㄧ讲鐨?HTML 鍐呭銆?,
         detail: readError || undefined,
         requestId,
       });
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
     return jsonError({
       status: 500,
       code: 'INTERNAL_ERROR',
-      message: '读取部署内容失败。',
+      message: '璇诲彇閮ㄧ讲鍐呭澶辫触銆?,
       detail: error?.message,
       requestId,
     });
@@ -130,8 +130,8 @@ export async function PATCH(request: NextRequest) {
       return jsonError({
         status: 415,
         code: 'UNSUPPORTED_CONTENT_TYPE',
-        message: '仅支持 application/json 请求。',
-        detail: `当前 Content-Type 为 ${contentType || 'unknown'}`,
+        message: '浠呮敮鎸?application/json 璇锋眰銆?,
+        detail: `褰撳墠 Content-Type 涓?${contentType || 'unknown'}`,
         requestId,
       });
     }
@@ -141,7 +141,7 @@ export async function PATCH(request: NextRequest) {
       return jsonError({
         status: 400,
         code: 'INVALID_PAYLOAD',
-        message: '请求体必须是单个 JSON 对象。',
+        message: '璇锋眰浣撳繀椤绘槸鍗曚釜 JSON 瀵硅薄銆?,
         requestId,
       });
     }
@@ -151,8 +151,8 @@ export async function PATCH(request: NextRequest) {
       return jsonError({
         status: 400,
         code: 'INVALID_CODE_OR_URL',
-        message: '请提供有效的 code 或部署 url。',
-        detail: '示例: {"code":"abc123","content":"<!doctype html>..."}',
+        message: '璇锋彁渚涙湁鏁堢殑 code 鎴栭儴缃?url銆?,
+        detail: '绀轰緥: {"code":"abc123","content":"<!doctype html>..."}',
         requestId,
       });
     }
@@ -161,7 +161,7 @@ export async function PATCH(request: NextRequest) {
       return jsonError({
         status: 400,
         code: 'INVALID_CONTENT',
-        message: 'content 必须是非空字符串。',
+        message: 'content 蹇呴』鏄潪绌哄瓧绗︿覆銆?,
         requestId,
       });
     }
@@ -173,8 +173,8 @@ export async function PATCH(request: NextRequest) {
       return jsonError({
         status: 413,
         code: 'FILE_TOO_LARGE',
-        message: 'HTML 文件体积超出限制。',
-        detail: `当前大小 ${fileSize} bytes，最大允许 ${MAX_HTML_SIZE_BYTES} bytes。`,
+        message: 'HTML 鏂囦欢浣撶Н瓒呭嚭闄愬埗銆?,
+        detail: `褰撳墠澶у皬 ${fileSize} bytes锛屾渶澶у厑璁?${MAX_HTML_SIZE_BYTES} bytes銆俙,
         requestId,
       });
     }
@@ -183,8 +183,8 @@ export async function PATCH(request: NextRequest) {
       return jsonError({
         status: 400,
         code: 'INVALID_HTML',
-        message: '提交内容不是有效的 HTML 文本。',
-        detail: '内容中至少应包含 <!doctype html> 或 <html> 标签。',
+        message: '鎻愪氦鍐呭涓嶆槸鏈夋晥鐨?HTML 鏂囨湰銆?,
+        detail: '鍐呭涓嚦灏戝簲鍖呭惈 <!doctype html> 鎴?<html> 鏍囩銆?,
         requestId,
       });
     }
@@ -194,7 +194,7 @@ export async function PATCH(request: NextRequest) {
       return jsonError({
         status: 404,
         code: 'DEPLOYMENT_NOT_FOUND',
-        message: '未找到对应部署。',
+        message: '鏈壘鍒板搴旈儴缃层€?,
         detail: error?.message,
         requestId,
       });
@@ -217,7 +217,7 @@ export async function PATCH(request: NextRequest) {
         return jsonError({
           status: 500,
           code: 'HTML_UPDATE_FAILED',
-          message: 'HTML 内容更新失败。',
+          message: 'HTML 鍐呭鏇存柊澶辫触銆?,
           detail: `${updateFileError.message}; fallback: ${uploadFallbackError.message}`,
           requestId,
         });
@@ -250,7 +250,7 @@ export async function PATCH(request: NextRequest) {
         return jsonError({
           status: 400,
           code: 'INVALID_FILENAME',
-          message: 'filename 必须以 .html 或 .htm 结尾。',
+          message: 'filename 蹇呴』浠?.html 鎴?.htm 缁撳熬銆?,
           requestId,
         });
       }
@@ -266,7 +266,7 @@ export async function PATCH(request: NextRequest) {
       return jsonError({
         status: 500,
         code: 'DEPLOYMENT_UPDATE_FAILED',
-        message: '部署记录更新失败。',
+        message: '閮ㄧ讲璁板綍鏇存柊澶辫触銆?,
         detail: updateError.message,
         requestId,
       });
@@ -280,7 +280,7 @@ export async function PATCH(request: NextRequest) {
         code,
         updatedAt: updates.updated_at,
         fileSize,
-        message: 'HTML 内容已更新。',
+        message: 'HTML 鍐呭宸叉洿鏂般€?,
         url: `${request.nextUrl.protocol}//${request.nextUrl.host}/s/${code}`,
       },
       withNoStoreHeaders()
@@ -289,7 +289,7 @@ export async function PATCH(request: NextRequest) {
     return jsonError({
       status: 500,
       code: 'INTERNAL_ERROR',
-      message: '更新部署内容失败。',
+      message: '鏇存柊閮ㄧ讲鍐呭澶辫触銆?,
       detail: error?.message,
       requestId,
     });

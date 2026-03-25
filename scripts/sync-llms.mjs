@@ -1,4 +1,4 @@
-import fs from 'node:fs';
+﻿import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
@@ -8,10 +8,10 @@ const outputPath = path.join(root, 'public', 'llms.txt');
 const docs = JSON.parse(fs.readFileSync(docsPath, 'utf8'));
 
 const lines = [
-  '# htmlcode.fun Agent Deployment Guide',
+  '# html-team-three.vercel.app Agent Deployment Guide',
   '',
   'Preferred API endpoint:',
-  '- POST https://www.htmlcode.fun/api/deploy',
+  '- POST https://html-team-three.vercel.app/api/deploy',
   '',
   'Required request format:',
   '- Content-Type: application/json',
@@ -40,10 +40,10 @@ const lines = [
   '- During cooldown API returns 429 with retryAfterSeconds',
   '',
   'Collaboration APIs (known code/url):',
-  '- GET https://www.htmlcode.fun/api/deploy/content?code=abc123',
-  '- GET https://www.htmlcode.fun/api/deploy/content?url=https://www.htmlcode.fun/s/abc123',
+  '- GET https://html-team-three.vercel.app/api/deploy/content?code=abc123',
+  '- GET https://html-team-three.vercel.app/api/deploy/content?url=https://html-team-three.vercel.app/s/abc123',
   '- Download mode: add query download=1',
-  '- PATCH https://www.htmlcode.fun/api/deploy/content',
+  '- PATCH https://html-team-three.vercel.app/api/deploy/content',
   '  - JSON body requires: code or url, and content',
   '  - Optional: title, filename',
   '',
@@ -54,7 +54,7 @@ const lines = [
   '- success=false, errorCode, error, detail, hint, docs, stage, requestId',
   '',
   'Docs:',
-  '- https://www.htmlcode.fun/api-docs',
+  '- https://html-team-three.vercel.app/api-docs',
   '',
   'Homepage highlights:',
   ...docs.homepageHighlights.map((item) => `- ${item}`),

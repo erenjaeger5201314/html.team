@@ -41,3 +41,12 @@ supabase/.temp/
 *.tsbuildinfo
 next-env.d.ts
 .env*.local
+
+# temp / debug files
+*.log
+migrate.mjs
+migrate-test.mjs
+full_migration.sql
+keys.txt
+keys_utf8.txt
+projects.json
