@@ -143,40 +143,50 @@ export default function Home() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="relative min-h-screen pb-12 font-sans">
+      {/* Premium Background */}
+      <div className="fixed inset-0 -z-10 bg-[#fafafa]">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]"></div>
+        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-blue-400 opacity-20 blur-[100px]"></div>
+      </div>
+      
+      <div className="space-y-8 relative z-10 pt-8">
       <Toast
         isOpen={toast.open}
         message={toast.message}
         type={toast.type}
         onClose={() => setToast((current) => ({ ...current, open: false }))}
       />
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl mb-4">
+      <div className="text-center mb-16 pt-8">
+        <h1 className="text-5xl font-extrabold tracking-tight sm:text-6xl mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 drop-shadow-sm">
           HTML 预览 & 部署工具
         </h1>
-        <p className="text-lg text-gray-500 max-w-2xl mx-auto">
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
           上传您的 HTML 文件，即时预览效果，并一键部署到云端生成永久访问链接和二维码。
         </p>
       </div>
 
-      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-2">
-            <h2 className="text-lg font-semibold text-blue-900">Agent API 部署通道已开放</h2>
-            <p className="text-sm text-blue-800">
-              首选调用方式：<span className="font-semibold">{agentDocs.deployEndpoint}</span>。可直接写入 HTML 代码进行部署，成功后返回上线链接。
+      <div className="rounded-2xl border border-white/40 bg-white/60 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 transition-all hover:bg-white/80 hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)]">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="space-y-2.5">
+            <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+              <Rocket className="w-5 h-5 text-blue-600" />
+              Agent API 部署通道已开放
+            </h2>
+            <p className="text-sm text-gray-700">
+              首选调用方式：<span className="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">{agentDocs.deployEndpoint}</span>。可直接写入 HTML 代码进行部署，成功后返回上线链接。
             </p>
-            <ul className="list-disc pl-5 text-sm text-blue-800 space-y-1">
+            <ul className="list-disc pl-5 text-sm text-gray-600 space-y-1 mt-2">
               {agentDocs.homepageHighlights.map((item) => (
-                <li key={item}>
-                  {item.includes('不要使用') ? <span className="font-semibold">{item}</span> : item}
+                <li key={item} className="marker:text-blue-500">
+                  {item.includes('不要使用') ? <span className="font-semibold text-red-500">{item}</span> : item}
                 </li>
               ))}
             </ul>
           </div>
           <Link
             href="/api-docs"
-            className="inline-flex items-center justify-center rounded-md border border-blue-300 bg-white px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+            className="shrink-0 inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 hover:text-blue-600 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             查看 API 快速文档
           </Link>
@@ -200,15 +210,15 @@ export default function Home() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 space-y-5">
-            <div className="inline-flex rounded-lg bg-gray-100 p-1 w-full">
+          <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-sm p-6 border border-gray-200/60 space-y-6 transition-all hover:shadow-md">
+            <div className="inline-flex rounded-xl bg-gray-100/80 p-1 w-full border border-gray-200/50">
               <button
                 type="button"
                 onClick={() => handleModeChange('upload')}
-                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
                   inputMode === 'upload'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200/50'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 上传文件
@@ -216,17 +226,17 @@ export default function Home() {
               <button
                 type="button"
                 onClick={() => handleModeChange('editor')}
-                className={`flex-1 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+                className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all ${
                   inputMode === 'editor'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'bg-white text-blue-600 shadow-sm ring-1 ring-gray-200/50'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 粘贴 / 编写代码
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               <label htmlFor="filename" className="block text-sm font-medium text-gray-700">
                 部署文件名
               </label>
@@ -275,8 +285,8 @@ export default function Home() {
             )}
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">内容信息</h3>
+          <div className="bg-white/70 backdrop-blur-md rounded-2xl shadow-sm p-6 border border-gray-200/60 transition-all hover:shadow-md">
+            <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center gap-2">内容信息</h3>
             <div className="space-y-3">
               <div className="flex justify-between gap-4">
                 <span className="text-gray-500">来源</span>
@@ -298,11 +308,11 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="mt-8 space-y-4">
+            <div className="mt-8 space-y-3">
               <button
                 onClick={handleDeploy}
                 disabled={isDeploying || !hasContent}
-                className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center items-center px-4 py-3.5 border border-transparent text-base font-bold rounded-xl shadow-md text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-0.5 active:translate-y-0"
               >
                 {isDeploying ? (
                   <>
@@ -311,20 +321,21 @@ export default function Home() {
                   </>
                 ) : (
                   <>
-                    <Rocket className="-ml-1 mr-2 h-5 w-5" />
+                    <Rocket className="-ml-1 mr-2 h-5 w-5 drop-shadow-sm" />
                     立即部署
                   </>
                 )}
               </button>
               <button
                 onClick={handleReset}
-                className="w-full flex justify-center items-center px-4 py-3 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="w-full flex justify-center items-center px-4 py-3 border border-gray-200 text-base font-semibold rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200 transition-all"
               >
                 清空内容
               </button>
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

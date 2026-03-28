@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { RefreshCw, Monitor, Tablet, Smartphone } from 'lucide-react';
+import { Maximize, Monitor, Tablet, Smartphone } from 'lucide-react';
 
 interface PreviewProps {
   content?: string;
@@ -29,12 +29,10 @@ export default function Preview({ content, url }: PreviewProps) {
     }
   }, [content, url]);
 
-  const handleRefresh = () => {
+  const handleFullscreen = () => {
     if (iframeRef.current) {
-      if (url) {
-        iframeRef.current.src = url;
-      } else if (content) {
-        iframeRef.current.srcdoc = content;
+      if (iframeRef.current.requestFullscreen) {
+        iframeRef.current.requestFullscreen();
       }
     }
   };
@@ -87,11 +85,11 @@ export default function Preview({ content, url }: PreviewProps) {
         </div>
 
         <button
-          onClick={handleRefresh}
+          onClick={handleFullscreen}
           className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          title="刷新预览"
+          title="全屏预览"
         >
-          <RefreshCw className="w-4 h-4 text-gray-500" />
+          <Maximize className="w-4 h-4 text-gray-500" />
         </button>
       </div>
       
